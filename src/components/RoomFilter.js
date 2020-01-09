@@ -22,9 +22,13 @@ const RoomFilter = ({ rooms }) => {
   } = ctx;
 
   let types = ['all', ...getUnique(rooms, 'type')];
+  types.sort();
   types = types.map((item, idx) => <option value={item} key={idx}>{item}</option>);
+
   let people = getUnique(rooms, 'capacity');
+  people.sort((a, b) => parseInt(a) - parseInt(b));
   people = people.map((item, idx) => <option key={idx} value={item}>{item}</option>);
+
   return (
     <section className="filter-container">
       <Title title="search rooms" />

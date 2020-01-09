@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
 import defaultBackground from '../images/room-1.jpeg';
-import Hero from '../components/Hero';
 import Banner from '../components/Banner';
 import { Link } from 'react-router-dom';
 import { RoomContext } from '../context';
@@ -66,5 +65,4 @@ const SingleRoom = (props) => {
   );
 };
 
-export default SingleRoom
-;
+export default SingleRoom;

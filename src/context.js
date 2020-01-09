@@ -1,60 +1,50 @@
-import React, { Component } from 'react';
-// import items from './data';
+import React, { useState, useEffect } from 'react';
 import Client from './Contentful';
 
 const RoomContext = React.createContext();
 
-class RoomProvider extends Component {
-  constructor (props) {
-    super(props);
-    this.state = {
-      rooms: [],
-      sortedRooms: [],
-      featuredRooms: [],
-      loading: true,
-      type: 'all',
-      capacity: '1',
-      price: 0,
-      minPrice: 0,
-      maxPrice: 0,
-      minSize: 0,
-      maxSize: 0,
-      breakfast: false,
-      pets: false
-    };
-  }
+const RoomProvider = ({ children }) => {
+  const [rooms, setRooms] = useState([]);
+  const [sortedRooms, setSortedRooms] = useState([]);
+  const [featuredRooms, setFeaturedRooms] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [type, setType] = useState('all');
+  const [capacity, setCapacity] = useState('1');
+  const [price, setPrice] = useState(0);
+  const [minPrice, setMinPrice] = useState(0);
+  const [maxPrice, setMaxPrice] = useState(0);
+  const [minSize, setMinSize] = useState(0);
+  const [maxSize, setMaxSize] = useState(0);
+  const [breakfast, setBreakfast] = useState(false);
+  const [pets, setPets] = useState(false);
+  useEffect(() => { getData(); }, []);
+  useEffect(() => { filterRooms(); }, [type, capacity, price, minSize, maxSize, breakfast, pets]);
 
   // getData
-  getData = async () => {
+  const getData = async () => {
     try {
       const response = await Client.getEntries({
         content_type: 'beachResortRoom',
         // order: 'sys.createdAt'
         order: '-fields.price'
       });
-      const rooms = this.formatData(response.items);
+      const rooms = formatData(response.items);
       const featuredRooms = rooms.filter(room => room.featured === true);
       const maxPrice = Math.max(...rooms.map(item => item.price));
       const maxSize = Math.max(...rooms.map(item => item.size));
-      this.setState({
-        rooms,
-        sortedRooms: rooms,
-        featuredRooms,
-        loading: false,
-        price: maxPrice,
-        maxPrice,
-        maxSize
-      });
+      setRooms(rooms);
+      setSortedRooms(rooms);
+      setFeaturedRooms(featuredRooms);
+      setLoading(false);
+      setPrice(maxPrice);
+      setMaxPrice(maxPrice);
+      setMaxSize(maxSize);
     } catch (error) {
       console.log(error);
     }
-  }
+  };
 
-  componentDidMount () {
-    this.getData();
-  }
-
-  formatData (items) {
+  const formatData = items => {
     const tempItems = items.map(item => {
       const id = item.sys.id;
       const images = item.fields.images.map(image => image.fields.file.url);
@@ -62,80 +52,104 @@ class RoomProvider extends Component {
       return room;
     });
     return tempItems;
-  }
+  };
 
-  getRoom = (slug) => {
-    const tempRooms = this.state.rooms;
+  const getRoom = slug => {
+    const tempRooms = rooms;
     const room = tempRooms.find(room => room.slug === slug);
     return room;
-  }
+  };
 
-  handleChange = event => {
+  const handleChange = event => {
     const target = event.target;
     const value = target.type === 'checkbox' ? target.checked : target.value;
     const name = target.name;
-    this.setState({
-      [name]: value
-    }, this.filterRooms);
-  }
+    switch (name) {
+      case 'type':
+        setType(value);
+        break;
+      case 'capacity':
+        setCapacity(value);
+        break;
+      case 'price':
+        setPrice(value);
+        break;
+      case 'minSize':
+        setMinSize(value);
+        break;
+      case 'maxSize':
+        setMaxSize(value);
+        break;
+      case 'breakfast':
+        setBreakfast(value);
+        break;
+      case 'pets':
+        setPets(value);
+        break;
+      default:
+    }
+  };
 
-  filterRooms = () => {
-    let {
-      rooms,
-      type,
-      capacity,
-      price,
-      minSize,
-      maxSize,
-      breakfast,
-      pets
-    } = this.state;
+  const filterRooms = () => {
+    const roomsLocal = rooms;
+    const typeLocal = type;
+    const capacityLocal = parseInt(capacity);
+    const priceLocal = parseInt(price);
+    const minSizeLocal = minSize;
+    const maxSizeLocal = maxSize;
+    const breakfastLocal = breakfast;
+    const petsLocal = pets;
     // all the rooms
-    let tempRooms = [...rooms];
-    // transform value
-    capacity = parseInt(capacity);
-    price = parseInt(price);
+    let tempRooms = [...roomsLocal];
     // filter by type
-    if (type !== 'all') {
-      tempRooms = tempRooms.filter(room => room.type === type);
+    if (typeLocal !== 'all') {
+      tempRooms = tempRooms.filter(room => room.type === typeLocal);
     }
     // filter by capacity
-    if (capacity !== 1) {
-      tempRooms = tempRooms.filter(room => room.capacity >= capacity);
+    if (capacityLocal !== 1) {
+      tempRooms = tempRooms.filter(room => room.capacity >= capacityLocal);
     }
     // filter by price
-    tempRooms = tempRooms.filter(room => room.price <= price);
+    tempRooms = tempRooms.filter(room => room.price <= priceLocal);
     // filter by size
-    tempRooms = tempRooms.filter(room => room.size >= minSize && room.size <= maxSize);
+    tempRooms = tempRooms.filter(room => room.size >= minSizeLocal && room.size <= maxSizeLocal);
     // filter by breakfast
-    if (breakfast) {
+    if (breakfastLocal) {
       tempRooms = tempRooms.filter(room => room.breakfast);
     }
     // filter by pets
-    if (pets) {
+    if (petsLocal) {
       tempRooms = tempRooms.filter(room => room.pets);
     }
-    this.setState({
-      sortedRooms: tempRooms
-    });
-  }
+    setSortedRooms(tempRooms);
+  };
 
-  render () {
-    return (
-      <RoomContext.Provider
-        value={{
-          ...this.state,
-          getRoom: this.getRoom,
-          handleChange: this.handleChange
-        }}>
-        {this.props.children}
-      </RoomContext.Provider>
-    );
-  }
-}
+  return (
+    <RoomContext.Provider
+      value={{
+        rooms,
+        sortedRooms,
+        featuredRooms,
+        loading,
+        type,
+        capacity,
+        price,
+        minPrice,
+        maxPrice,
+        minSize,
+        maxSize,
+        breakfast,
+        pets,
+        getRoom,
+        handleChange
+      }}>
+      {children}
+    </RoomContext.Provider>
+  );
+};
 
 const RoomConsumer = RoomContext.Consumer;
-
+// HOC example
 export function withRoomConsumer (Component) {
   return (
     <RoomConsumer>
